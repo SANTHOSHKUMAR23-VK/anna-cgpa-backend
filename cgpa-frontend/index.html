@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anna University CGPA Calculator</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        /* Admin Dashboard Styles */
+        .admin-dashboard {
+            max-width: 900px;
+            margin: 40px auto;
+            background: rgba(255,255,255,0.98);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+            padding: 40px 30px;
+            animation: fadeIn 0.5s;
+        }
+        .admin-title {
+            color: #764ba2;
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .admin-users-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        .admin-users-table th, .admin-users-table td {
+            border: 1px solid #e1e8ed;
+            padding: 10px 12px;
+            text-align: left;
+        }
+        .admin-users-table th {
+            background: #f3f3fa;
+            color: #764ba2;
+        }
+        .admin-export-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-bottom: 4px;
+            transition: background 0.2s;
+        }
+        .admin-export-btn:hover {
+            background: linear-gradient(135deg, #764ba2, #667eea);
+        }
+        .admin-section-actions {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        .admin-empty {
+            text-align: center;
+            color: #aaa;
+            margin: 30px 0;
+        }
+    </style>
+    <script type="text/babel">
+        // Admin Dashboard Component
+        function AdminDashboard({ user, onLogout }) {
+            const [users, setUsers] = React.useState([]);
+            const [loading, setLoading] = React.useState(true);
+            const [error, setError] = React.useState("");
+
+            React.useEffect(() => {
+                fetchUsers();
+            }, []);
+
+            async function fetchUsers() {
+                setLoading(true);
+                setError("");
+                try {
+                    const data = await api.getAllUsers();
+                    setUsers(data);
+                } catch (err) {
+                    setError(err.message || "Failed to fetch users");
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+            return (
+                <div className="admin-dashboard">
+                    <div className="admin-section-actions">
+                        <button className="admin-export-btn" onClick={api.exportAllExcel}>Export All (Excel)</button>
+                        <button className="admin-export-btn" onClick={api.exportAllPdf}>Export All (PDF)</button>
+                        <button className="btn logout-btn" style={{float:'right'}} onClick={onLogout}>Logout</button>
+                    </div>
+                    <h2 className="admin-title">Admin Dashboard</h2>
+                    {error && <div className="error-message">{error}</div>}
+                    {loading ? (
+                        <div className="loading">Loading users...</div>
+                    ) : users.length === 0 ? (
+                        <div className="admin-empty">No users found.</div>
+                    ) : (
+                        <table className="admin-users-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Export</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {users.map(u => (
+                                    <tr key={u._id}>
+                                        <td>{u.name}</td>
+                                        <td>{u.email}</td>
+                                        <td>{u.role}</td>
+                                        <td>
+                                            <button className="admin-export-btn" onClick={() => api.exportUserExcel(u._id)}>Excel</button>
+                                            <button className="admin-export-btn" onClick={() => api.exportUserPdf(u._id)}>PDF</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            );
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .app {
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Auth Forms */
+        .auth-container {
+            max-width: 400px;
+            margin: 100px auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .auth-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #667eea;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+            width: auto;
+            margin: 0 4px;
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+
+        .auth-switch a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .auth-switch a:hover {
+            text-decoration: underline;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .dashboard-header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .dashboard-title {
+            color: #667eea;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .user-info {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            padding: 10px 20px;
+            width: auto;
+            display: inline-block;
+        }
+
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .card-title {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e1e8ed;
+        }
+
+        .semester-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .semester-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .semester-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .semester-info {
+            flex: 1;
+        }
+
+        .semester-number {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        .semester-details {
+            color: #666;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        .semester-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .cgpa-display {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .cgpa-value {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .cgpa-label {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .cgpa-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .edit-form {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        /* Scrollbar Styling */
+        .semester-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .semester-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .semester-list::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        .semester-list::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+
+        <div id="root"></div>
+        <div style="text-align:center; margin: 30px 0;">
+            <button id="downloadExcel">Download All Users (Excel)</button>
+            <button id="downloadPdf">Download All Users (PDF)</button>
+        </div>
+
+        <script>
+            const API_URL = "http://localhost:5000/api/admin";
+
+            // Helper to download files with token
+            async function downloadFile(endpoint, filename) {
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    alert("You must log in as admin first!");
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${API_URL}${endpoint}`, {
+                        method: "GET",
+                        headers: {
+                            "Authorization": `Bearer ${token}`,
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        alert("Error: " + error.message);
+                        return;
+                    }
+
+                    // Convert response to blob (binary file)
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+
+                    // Trigger browser download
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+
+                } catch (err) {
+                    console.error("Download error:", err);
+                }
+            }
+
+            document.getElementById("downloadExcel").addEventListener("click", () => {
+                downloadFile("/export/all/excel", "all-users-cgpa.xlsx");
+            });
+
+            document.getElementById("downloadPdf").addEventListener("click", () => {
+                downloadFile("/export/all/pdf", "all-users-cgpa.pdf");
+            });
+        </script>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // API Configuration
+        const REACT_API_URL = 'http://localhost:5000/api'; // or your deployed backend
+
+        // API Helper Functions
+        const api = {
+            // Auth endpoints
+            register: async (data) => {
+                const res = await fetch(`${REACT_API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (!res.ok) throw await res.json();
+                return res.json();
+            },
+
+            login: async (data) => {
+                const res = await fetch(`${REACT_API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (!res.ok) throw await res.json();
+                return res.json();
+            },
+
+            // CGPA endpoints
+            addGpa: async (data) => {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${REACT_API_URL}/cgpa`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                if (!res.ok) throw await res.json();
+                return res.json();
+            },
+
+            getCgpa: async () => {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${REACT_API_URL}/cgpa`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (!res.ok) throw await res.json();
+                return res.json();
+            },
+
+            updateSemester: async (id, data) => {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${REACT_API_URL}/cgpa/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                if (!res.ok) throw await res.json();
+                return res.json();
+            },
+
+            deleteSemester: async (id) => {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${REACT_API_URL}/cgpa/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (!res.ok) throw await res.json();
+                return res.json();
+            },
+
+            // Admin endpoints
+            getAllUsers: async () => {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/admin/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (!res.ok) throw await res.json();
+                return res.json();
+            },
+
+            exportUserExcel: async (userId) => {
+                const token = localStorage.getItem('token');
+                window.open(`${API_URL}/admin/export/excel/${userId}?token=${token}`, '_blank');
+            },
+
+            exportUserPdf: async (userId) => {
+                const token = localStorage.getItem('token');
+                window.open(`${API_URL}/admin/export/pdf/${userId}?token=${token}`, '_blank');
+            },
+
+            exportAllExcel: async () => {
+                const token = localStorage.getItem('token');
+                window.open(`${API_URL}/admin/export/all/excel?token=${token}`, '_blank');
+            },
+
+            exportAllPdf: async () => {
+                const token = localStorage.getItem('token');
+                window.open(`${API_URL}/admin/export/all/pdf?token=${token}`, '_blank');
+            }
+        };
+
+        // Login Component
+        function Login({ onLogin, switchToRegister }) {
+            const [formData, setFormData] = useState({ email: '', password: '' });
+            const [error, setError] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setError('');
+                setLoading(true);
+                
+                try {
+                    const data = await api.login(formData);
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    onLogin(data.token, data.user);
+                } catch (err) {
+                    setError(err.message || err.msg || 'Login failed');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="auth-container">
+                    <h2 className="auth-title">Login to CGPA Calculator</h2>
+                    {error && <div className="error-message">{error}</div>}
+                    <form id="login-form" onSubmit={handleSubmit}>
+                        <div className="form-group">
+                            <label>Email</label>
+                            <input
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                required
+                                placeholder="Enter your email"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Password</label>
+                            <input
+                                type="password"
+                                value={formData.password}
+                                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                required
+                                placeholder="Enter your password"
+                            />
+                        </div>
+                        <button type="submit" className="btn" disabled={loading}>
+                            {loading ? 'Logging in...' : 'Login'}
+                        </button>
+                    </form>
+                    <div className="auth-switch">
+                        Don't have an account? <a onClick={switchToRegister}>Register</a>
+                    </div>
+                </div>
+            );
+        }
+
+        // Register Component
+        function Register({ onLogin, switchToLogin }) {
+            const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+            const [error, setError] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setError('');
+                setLoading(true);
+                
+                try {
+                    await api.register(formData);
+                    // Auto-login after registration
+                    const loginData = await api.login({ email: formData.email, password: formData.password });
+                    localStorage.setItem('token', loginData.token);
+                    localStorage.setItem('user', JSON.stringify(loginData.user));
+                    onLogin(loginData.token, loginData.user);
+                } catch (err) {
+                    setError(err.message || err.msg || 'Registration failed');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="auth-container">
+                    <h2 className="auth-title">Create Account</h2>
+                    {error && <div className="error-message">{error}</div>}
+                    <form id="register-form" onSubmit={handleSubmit}>
+                        <div className="form-group">
+                            <label>Name</label>
+                            <input
+                                type="text"
+                                value={formData.name}
+                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                required
+                                placeholder="Enter your full name"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Email</label>
+                            <input
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                required
+                                placeholder="Enter your email"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Password</label>
+                            <input
+                                type="password"
+                                value={formData.password}
+                                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                required
+                                minLength="6"
+                                placeholder="Minimum 6 characters"
+                            />
+                        </div>
+                        <button type="submit" className="btn" disabled={loading}>
+                            {loading ? 'Creating Account...' : 'Register'}
+                        </button>
+                    </form>
+                    <div className="auth-switch">
+                        Already have an account? <a onClick={switchToLogin}>Login</a>
+                    </div>
+                </div>
+            );
+        }
+
+        // Dashboard Component
+        function Dashboard({ token, user, onLogout, isEmbedded }) {
+            const [semesters, setSemesters] = useState([]);
+            const [cgpa, setCgpa] = useState(0);
+            const [totalCredits, setTotalCredits] = useState(0);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState('');
+            const [success, setSuccess] = useState('');
+            const [formData, setFormData] = useState({ semester: '', gpa: '', credits: '' });
+            const [editingId, setEditingId] = useState(null);
+            const [editFormData, setEditFormData] = useState({ gpa: '', credits: '' });
+
+            useEffect(() => {
+                fetchData();
+            }, []);
+
+            const fetchData = async () => {
+                setLoading(true);
+                setError('');
+                try {
+                    const data = await api.getCgpa(token);
+                    setSemesters(data.records || []);
+                    if (data.records && data.records.length > 0) {
+                        calculateCgpa(data.records);
+                    }
+                } catch (err) {
+                    if (err.message !== 'No GPA records found') {
+                        setError(err.message || 'Failed to fetch data');
+                    }
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const calculateCgpa = (records) => {
+                if (!records || records.length === 0) {
+                    setCgpa(0);
+                    setTotalCredits(0);
+                    return;
+                }
+
+                let totalPoints = 0;
+                let totalCreds = 0;
+                
+                records.forEach(sem => {
+                    totalPoints += (sem.gpa * sem.credits);
+                    totalCreds += sem.credits;
+                });
+
+                const calculatedCgpa = totalCreds > 0 ? (totalPoints / totalCreds).toFixed(2) : 0;
+                setCgpa(calculatedCgpa);
+                setTotalCredits(totalCreds);
+            };
+
+            const handleAddSemester = async (e) => {
+                e.preventDefault();
+                setError('');
+                setSuccess('');
+                
+                try {
+                    const payload = {
+                        semester: parseInt(formData.semester),
+                        gpa: parseFloat(formData.gpa),
+                        credits: parseInt(formData.credits)
+                    };
+                    console.log("Payload to send:", payload);
+                    const newSemester = await api.addGpa(payload, token);
+                    
+                    const updatedSemesters = [...semesters, newSemester].sort((a, b) => a.semester - b.semester);
+                    setSemesters(updatedSemesters);
+                    calculateCgpa(updatedSemesters);
+                    setFormData({ semester: '', gpa: '', credits: '' });
+                    setSuccess('Semester added successfully!');
+                    setTimeout(() => setSuccess(''), 3000);
+                } catch (err) {
+                    setError(err.message || 'Failed to add semester');
+                }
+            };
+
+            const handleUpdateSemester = async (id) => {
+                setError('');
+                setSuccess('');
+                
+                try {
+                    const updated = await api.updateSemester(id, {
+                        gpa: parseFloat(editFormData.gpa),
+                        credits: parseInt(editFormData.credits)
+                    }, token);
+                    
+                    const updatedSemesters = semesters.map(sem => 
+                        sem._id === id ? { ...sem, ...updated } : sem
+                    );
+                    setSemesters(updatedSemesters);
+                    calculateCgpa(updatedSemesters);
+                    setEditingId(null);
+                    setEditFormData({ gpa: '', credits: '' });
+                    setSuccess('Semester updated successfully!');
+                    setTimeout(() => setSuccess(''), 3000);
+                } catch (err) {
+                    setError(err.message || 'Failed to update semester');
+                }
+            };
+
+            const handleDeleteSemester = async (id) => {
+                if (!confirm('Are you sure you want to delete this semester?')) return;
+                
+                setError('');
+                setSuccess('');
+                
+                try {
+                    await api.deleteSemester(id, token);
+                    const updatedSemesters = semesters.filter(sem => sem._id !== id);
+                    setSemesters(updatedSemesters);
+                    calculateCgpa(updatedSemesters);
+                    setSuccess('Semester deleted successfully!');
+                    setTimeout(() => setSuccess(''), 3000);
+                } catch (err) {
+                    setError(err.message || 'Failed to delete semester');
+                }
+            };
+
+            const startEdit = (sem) => {
+                setEditingId(sem._id);
+                setEditFormData({ gpa: sem.gpa, credits: sem.credits });
+            };
+
+            const cancelEdit = () => {
+                setEditingId(null);
+                setEditFormData({ gpa: '', credits: '' });
+            };
+
+            if (loading) {
+                return <div className="loading">Loading your data...</div>;
+            }
+
+            return (
+                <div className="dashboard">
+                    <div className="container">
+                        {/* Dashboard header only if not embedded */}
+                        {!isEmbedded && (
+                            <div className="dashboard-header">
+                                <h1 className="dashboard-title">CGPA Calculator Dashboard</h1>
+                                <div className="user-info">
+                                    Welcome back, <strong>{user.name}</strong> ({user.email})
+                                </div>
+                                <button onClick={onLogout} className="btn logout-btn">Logout</button>
+                            </div>
+                        )}
+
+                        {error && <div className="error-message">{error}</div>}
+                        {success && <div className="success-message">{success}</div>}
+
+                        <div className="dashboard-content">
+                            {/* Add Semester form only if not embedded */}
+                            {!isEmbedded && (
+                                <div className="card">
+                                    <h2 className="card-title">Add Semester</h2>
+                                    <form id="add-semester-form" onSubmit={handleAddSemester}>
+                                        <div className="form-group">
+                                            <label>Semester Number</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="10"
+                                                value={formData.semester}
+                                                onChange={(e) => setFormData({...formData, semester: e.target.value})}
+                                                required
+                                                placeholder="e.g., 1, 2, 3..."
+                                            />
+                                        </div>
+                                        <div className="form-row">
+                                            <div className="form-group">
+                                                <label>GPA</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    max="10"
+                                                    value={formData.gpa}
+                                                    onChange={(e) => setFormData({...formData, gpa: e.target.value})}
+                                                    required
+                                                    placeholder="0.00 - 10.00"
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Credits</label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max="50"
+                                                    value={formData.credits}
+                                                    onChange={(e) => setFormData({...formData, credits: e.target.value})}
+                                                    required
+                                                    placeholder="Credits"
+                                                />
+                                            </div>
+                                        </div>
+                                        <button type="submit" className="btn">Add Semester</button>
+                                    </form>
+                                </div>
+                            )}
+                            <div className="card">
+                                <div className="cgpa-display">
+                                    <div className="cgpa-label">Current CGPA</div>
+                                    <div className="cgpa-value">{cgpa || '0.00'}</div>
+                                    <div className="cgpa-stats">
+                                        <div className="stat-item">
+                                            <div className="stat-value">{semesters.length}</div>
+                                            <div className="stat-label">Semesters</div>
+                                        </div>
+                                        <div className="stat-item">
+                                            <div className="stat-value">{totalCredits}</div>
+                                            <div className="stat-label">Total Credits</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="card">
+                                <h2 className="card-title">Your Semesters</h2>
+                                {semesters.length === 0 ? (
+                                    <div className="empty-state">
+                                        <div className="empty-state-icon">📚</div>
+                                        <p>No semesters added yet.</p>
+                                        <p>Add your first semester to get started!</p>
+                                    </div>
+                                ) : (
+                                    <div className="semester-list">
+                                        {semesters.map((sem) => (
+                                            <div key={sem._id}>
+                                                {!isEmbedded && editingId === sem._id ? (
+                                                    <div className="edit-form">
+                                                        <div className="semester-number">Semester {sem.semester}</div>
+                                                        <div className="form-row">
+                                                            <div className="form-group">
+                                                                <label>GPA</label>
+                                                                <input
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    min="0"
+                                                                    max="10"
+                                                                    value={editFormData.gpa}
+                                                                    onChange={(e) => setEditFormData({...editFormData, gpa: e.target.value})}
+                                                                    required
+                                                                />
+                                                            </div>
+                                                            <div className="form-group">
+                                                                <label>Credits</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="1"
+                                                                    max="50"
+                                                                    value={editFormData.credits}
+                                                                    onChange={(e) => setEditFormData({...editFormData, credits: e.target.value})}
+                                                                    required
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="edit-actions">
+                                                            <button 
+                                                                className="btn btn-small"
+                                                                onClick={() => handleUpdateSemester(sem._id)}
+                                                            >
+                                                                Save
+                                                            </button>
+                                                            <button 
+                                                                className="btn btn-small btn-secondary"
+                                                                onClick={cancelEdit}
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="semester-item">
+                                                        <div className="semester-info">
+                                                            <div className="semester-number">Semester {sem.semester}</div>
+                                                            <div className="semester-details">
+                                                                GPA: <strong>{sem.gpa.toFixed(2)}</strong> | 
+                                                                Credits: <strong>{sem.credits}</strong>
+                                                            </div>
+                                                        </div>
+                                                        {!isEmbedded && (
+                                                            <div className="semester-actions">
+                                                                <button 
+                                                                    className="btn btn-small btn-secondary"
+                                                                    onClick={() => startEdit(sem)}
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                                <button 
+                                                                    className="btn btn-small btn-danger"
+                                                                    onClick={() => handleDeleteSemester(sem._id)}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Main App Component
+        function App() {
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [token, setToken] = useState(null);
+            const [user, setUser] = useState(null);
+            const [showLogin, setShowLogin] = useState(true);
+
+            useEffect(() => {
+                // Check for existing session
+                const storedToken = localStorage.getItem('token');
+                const storedUser = localStorage.getItem('user');
+                
+                if (storedToken && storedUser) {
+                    try {
+                        const userData = JSON.parse(storedUser);
+                        setToken(storedToken);
+                        setUser(userData);
+                        setIsAuthenticated(true);
+                    } catch (err) {
+                        // Clear invalid data
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                    }
+                }
+            }, []);
+
+            const handleLogin = (token, user) => {
+                setToken(token);
+                setUser(user);
+                setIsAuthenticated(true);
+            };
+
+            const handleLogout = () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                setToken(null);
+                setUser(null);
+                setIsAuthenticated(false);
+                setShowLogin(true);
+            };
+
+            const switchToRegister = () => setShowLogin(false);
+            const switchToLogin = () => setShowLogin(true);
+
+            return (
+                <div className="app">
+                    {!isAuthenticated ? (
+                        showLogin ? (
+                            <Login 
+                                onLogin={handleLogin} 
+                                switchToRegister={switchToRegister} 
+                            />
+                        ) : (
+                            <Register 
+                                onLogin={handleLogin} 
+                                switchToLogin={switchToLogin} 
+                            />
+                        )
+                    ) : user && user.role === "admin" ? (
+                        // Render AdminDashboard for admin, pass isEmbedded to Dashboard if embedding student view
+                        <AdminDashboard user={user} onLogout={handleLogout} />
+                    ) : (
+                        <Dashboard 
+                            token={token} 
+                            user={user} 
+                            onLogout={handleLogout} 
+                            isEmbedded={false}
+                        />
+                    )}
+                </div>
+            );
+        }
+
+        // Render the App
+        ReactDOM.render(<App />, document.getElementById('root'));
+
+        // Pre-fill with sample data
+        (async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            try {
+                // Add a sample semester
+                await api.addGpa({ "semester": 1, "gpa": 8.7, "credits": 22 }, token);
+                
+                // Fetch updated data
+                const data = await api.getCgpa(token);
+                const semesters = data.records || [];
+
+                // Calculate CGPA
+                if (semesters.length > 0) {
+                    let totalPoints = 0;
+                    let totalCreds = 0;
+                    
+                    semesters.forEach(sem => {
+                        totalPoints += (sem.gpa * sem.credits);
+                        totalCreds += sem.credits;
+                    });
+
+                    const calculatedCgpa = totalCreds > 0 ? (totalPoints / totalCreds).toFixed(2) : 0;
+
+                    // Update state directly (bypassing setState for demo)
+                    window.cgpa = calculatedCgpa;
+                    window.totalCredits = totalCreds;
+                    window.semesters = semesters;
+                }
+            } catch (err) {
+                console.error('Error pre-filling data:', err);
+            }
+        })();
+
+        async function addGpaHandler(event) {
+          event.preventDefault();
+
+          const semesterEl = document.getElementById('semester');
+          const gpaEl = document.getElementById('gpa');
+          const creditsEl = document.getElementById('credits');
+
+          // Read and validate inputs
+          const semester = parseInt(semesterEl.value, 10);
+          const gpa = parseFloat(gpaEl.value);
+          const credits = parseInt(creditsEl.value, 10);
+
+          if (!Number.isInteger(semester) || semester < 1) {
+            alert('Enter a valid semester number (>=1)');
+            return;
+          }
+          if (Number.isNaN(gpa) || gpa < 0 || gpa > 10) {
+            alert('Enter a valid GPA (0 - 10)');
+            return;
+          }
+          if (!Number.isInteger(credits) || credits < 0) {
+            alert('Enter valid credits (>=0)');
+            return;
+          }
+
+          const token = localStorage.getItem('token');
+
+          try {
+            console.log('Sending payload:', { semester, gpa, credits });
+            const res = await fetch(`${API_URL}/cgpa`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+              },
+              body: JSON.stringify({ semester, gpa, credits })
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+              console.error('Server returned error', data);
+              alert(data.message || JSON.stringify(data));
+              return;
+            }
+
+            console.log('Created record:', data);
+            // update UI, clear form, refresh list, etc.
+          } catch (err) {
+            console.error('Network or unexpected error', err);
+            alert('Network error: ' + err.message);
+          }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+          document.getElementById('add-semester-form')
+              ?.addEventListener('submit', addGpaHandler);
+        });
+    </script>
+</body>
+</html>
