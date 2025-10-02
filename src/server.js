@@ -1,5 +1,4 @@
 
-
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -13,8 +12,13 @@ dotenv.config();
 connectDB();
 
 
+
 const app = express();
-app.use(cors()); // allow all origins
+app.use(cors({
+  origin: "*", // or restrict to your Netlify domain
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 app.use(express.json());
 
 app.get("/", (req, res) => {
