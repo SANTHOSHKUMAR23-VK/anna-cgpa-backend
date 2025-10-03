@@ -1,43 +1,71 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+import User from "../models/userModel.js";
+import jwt from "jsonwebtoken";
 
-const register = async (req, res) => {
+// Generate JWT
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: "1h", // token valid for 1 hour
+  });
+};
+
+// @desc    Register a new user
+// @route   POST /api/auth/register
+// @access  Public
+export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    const exist = await User.findOne({ email });
-    if (exist) return res.status(400).json({ message: 'Email already registered' });
 
-    const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
-    const hash = await bcrypt.hash(password, saltRounds);
+    // Check if user already exists
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ message: "User already exists" });
+    }
 
-    const user = await User.create({ name, email, passwordHash: hash });
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+    // Create user
+    const user = await User.create({ name, email, password });
 
-    res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    if (user) {
+      res.status(201).json({
+        token: generateToken(user._id),
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+        },
+      });
+    } else {
+      res.status(400).json({ message: "Invalid user data" });
+    }
+  } catch (error) {
+    console.error("Register Error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-const login = async (req, res) => {
+// @desc    Login user & get token
+// @route   POST /api/auth/login
+// @access  Public
+export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    // Find user
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
-    const match = await bcrypt.compare(password, user.passwordHash);
-    if (!match) return res.status(400).json({ message: 'Invalid credentials' });
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role }});
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    if (user && (await user.matchPassword(password))) {
+      res.json({
+        token: generateToken(user._id),
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+        },
+      });
+    } else {
+      res.status(401).json({ msg: "Invalid credentials" });
+    }
+  } catch (error) {
+    console.error("Login Error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
-
-const getMe = async (req, res) => {
-  res.json({ user: req.user });
-};
-
-module.exports = { register, login, getMe };

@@ -1,3 +1,47 @@
+// Excel Export for all users (name/email only)
+export const downloadUsersExcel = async (req, res) => {
+  try {
+    const users = await User.find();
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Users");
+
+    sheet.columns = [
+      { header: "Name", key: "name" },
+      { header: "Email", key: "email" },
+    ];
+
+    users.forEach((user) => {
+      sheet.addRow({ name: user.name, email: user.email });
+    });
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", "attachment; filename=users.xlsx");
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    res.status(500).json({ message: "Error generating Excel" });
+  }
+};
+
+// PDF Export for all users (name/email only)
+export const downloadUsersPDF = async (req, res) => {
+  try {
+    const users = await User.find();
+    const doc = new PDFDocument();
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "attachment; filename=users.pdf");
+
+    doc.pipe(res);
+    users.forEach((user) => {
+      doc.text(`${user.name} - ${user.email}`);
+    });
+    doc.end();
+  } catch (error) {
+    res.status(500).json({ message: "Error generating PDF" });
+  }
+};
 // Export ALL users with their CGPA records (Excel)
 export const exportAllUsersExcel = async (req, res) => {
   try {
@@ -73,7 +117,7 @@ export const exportAllUsersPdf = async (req, res) => {
   }
 };
 // src/controllers/userController.js
-import User from "../models/User.js";
+import User from "../models/userModel.js";
 import Cgpa from "../models/Cgpa.js";
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
