@@ -1,18 +1,59 @@
-// Excel Export for all users (name/email only)
+
+import User from "../models/userModel.js";
+import Cgpa from "../models/cgpaModel.js";
+import ExcelJS from "exceljs";
+import PDFDocument from "pdfkit";
+
 export const downloadUsersExcel = async (req, res) => {
   try {
     const users = await User.find();
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet("Users");
 
-    sheet.columns = [
-      { header: "Name", key: "name" },
-      { header: "Email", key: "email" },
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Users");
+
+    // Define columns
+    worksheet.columns = [
+      { header: "Name", key: "name", width: 20 },
+      { header: "Email", key: "email", width: 25 },
+      { header: "Sem1", key: "sem1", width: 10 },
+      { header: "Sem2", key: "sem2", width: 10 },
+      { header: "Sem3", key: "sem3", width: 10 },
+      { header: "Sem4", key: "sem4", width: 10 },
+      { header: "Sem5", key: "sem5", width: 10 },
+      { header: "Sem6", key: "sem6", width: 10 },
+      { header: "Sem7", key: "sem7", width: 10 },
+      { header: "Sem8", key: "sem8", width: 10 },
+      { header: "CGPA", key: "cgpa", width: 10 },
     ];
 
-    users.forEach((user) => {
-      sheet.addRow({ name: user.name, email: user.email });
-    });
+    for (const user of users) {
+      const records = await Cgpa.find({ user: user._id });
+
+      let semData = {};
+      let total = 0, credits = 0;
+
+      records.forEach(r => {
+        semData[`sem${r.semester}`] = r.gpa;
+        total += r.gpa * (r.credits || 1);
+        credits += r.credits || 1;
+      });
+
+      const cgpa = credits > 0 ? (total / credits).toFixed(2) : "N/A";
+
+      worksheet.addRow({
+        name: user.name,
+        email: user.email,
+        sem1: semData.sem1 || "",
+        sem2: semData.sem2 || "",
+        sem3: semData.sem3 || "",
+        sem4: semData.sem4 || "",
+        sem5: semData.sem5 || "",
+        sem6: semData.sem6 || "",
+        sem7: semData.sem7 || "",
+        sem8: semData.sem8 || "",
+        cgpa,
+      });
+    }
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", "attachment; filename=users.xlsx");
@@ -20,25 +61,62 @@ export const downloadUsersExcel = async (req, res) => {
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Error generating Excel" });
   }
 };
 
-// PDF Export for all users (name/email only)
+
+
 export const downloadUsersPDF = async (req, res) => {
   try {
     const users = await User.find();
-    const doc = new PDFDocument();
+
+    const doc = new PDFDocument({ margin: 30, size: "A4", layout: "landscape" });
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", "attachment; filename=users.pdf");
 
     doc.pipe(res);
-    users.forEach((user) => {
-      doc.text(`${user.name} - ${user.email}`);
-    });
+
+    // Table headers
+    const headers = ["Name", "Email", "Sem1", "Sem2", "Sem3", "Sem4", "Sem5", "Sem6", "Sem7", "Sem8", "CGPA"];
+    doc.fontSize(10).text(headers.join("\t"), { underline: true });
+
+    for (const user of users) {
+      const records = await Cgpa.find({ user: user._id });
+
+      let semData = {};
+      let total = 0, credits = 0;
+
+      records.forEach(r => {
+        semData[`sem${r.semester}`] = r.gpa;
+        total += r.gpa * (r.credits || 1);
+        credits += r.credits || 1;
+      });
+
+      const cgpa = credits > 0 ? (total / credits).toFixed(2) : "N/A";
+
+      const row = [
+        user.name,
+        user.email,
+        semData.sem1 || "-",
+        semData.sem2 || "-",
+        semData.sem3 || "-",
+        semData.sem4 || "-",
+        semData.sem5 || "-",
+        semData.sem6 || "-",
+        semData.sem7 || "-",
+        semData.sem8 || "-",
+        cgpa,
+      ];
+
+      doc.moveDown(0.5).text(row.join("\t"));
+    }
+
     doc.end();
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Error generating PDF" });
   }
 };
@@ -117,10 +195,7 @@ export const exportAllUsersPdf = async (req, res) => {
   }
 };
 // src/controllers/userController.js
-import User from "../models/userModel.js";
-import Cgpa from "../models/Cgpa.js";
-import ExcelJS from "exceljs";
-import PDFDocument from "pdfkit";
+
 
 /**
  * GET /api/admin/users

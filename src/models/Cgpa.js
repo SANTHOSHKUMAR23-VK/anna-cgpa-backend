@@ -28,4 +28,5 @@ const cgpaSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("Cgpa", cgpaSchema);
+const Cgpa = mongoose.models.Cgpa || mongoose.model("Cgpa", cgpaSchema);
+export default Cgpa;

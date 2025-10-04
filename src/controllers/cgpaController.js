@@ -12,16 +12,24 @@ export const addCgpa = async (req, res) => {
       return res.status(400).json({ message: "Semester, GPA, and Credits are required" });
     }
 
-    const record = await Cgpa.create({
+    // Check if this semester already exists for the user
+    const existing = await Cgpa.findOne({ user: req.user._id, semester });
+    if (existing) {
+      return res.status(400).json({ message: `Semester ${semester} already exists` });
+    }
+
+    // Create new semester record
+    const newRecord = await Cgpa.create({
       user: req.user._id,
       semester,
       gpa,
       credits,
     });
 
-    res.status(201).json(record);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(201).json(newRecord);
+  } catch (error) {
+    console.error("Error in addCgpa:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
